@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prédiction PV — Tunisie</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f4f6f9; --surface: #ffffff; --border: #e2e8f0;
+      --muted: #64748b; --text: #0f172a; --accent: #2563eb;
+      --accent-lt: #eff6ff; --green: #059669; --green-lt: #ecfdf5;
+      --amber: #d97706; --amber-lt: #fffbeb; --red: #dc2626;
+      --radius: 10px; --shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Header */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 58px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); }
+    .logo { width: 36px; height: 36px; background: linear-gradient(135deg,#fbbf24,#f97316); border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+    .logo svg { width: 20px; height: 20px; }
+    header h1 { font-size: 15px; font-weight: 600; }
+    .hbadge { margin-left: auto; font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--green-lt); color: var(--green); border: 1px solid #a7f3d0; font-weight: 500; }
+
+    /* Layout */
+    main { max-width: 1020px; margin: 1.75rem auto; padding: 0 1rem; display: grid; grid-template-columns: 1fr 360px; gap: 1.25rem; align-items: start; }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .ch { padding: .8rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .ch h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+    .ch svg { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
+    .cb { padding: 1.2rem; }
+
+    /* Form */
+    .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fg3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .iw { position: relative; }
+    .iw input, .iw select {
+      width: 100%; padding: 8px 46px 8px 10px;
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13.5px; color: var(--text); background: #fafafa; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .iw select { padding-right: 10px; cursor: pointer; }
+    .iw input:focus, .iw select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .iw input.err { border-color: var(--red); }
+    .ub { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--muted); background: #f1f5f9; padding: 2px 5px; border-radius: 4px; pointer-events: none; }
+    .emsg { font-size: 10.5px; color: var(--red); min-height: 13px; }
+    .div { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+    .section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .7rem; }
+
+    /* Buttons */
+    .brow { display: flex; gap: 10px; margin-top: 1.1rem; }
+    .btn { padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s, transform .08s; }
+    .btn:active { transform: scale(.97); }
+    .btn-ghost { flex: 1; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+    .btn-ghost:hover { background: #eef2f7; }
+    .btn-primary { flex: 2; border: none; background: var(--accent); color: #fff; justify-content: center; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* Result */
+    .res-body { padding: 1.4rem 1.2rem; text-align: center; }
+    .res-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+    .res-big { font-size: 54px; font-weight: 700; line-height: 1; transition: color .3s; }
+    .res-big.good { color: var(--green); }
+    .res-big.mid  { color: var(--amber); }
+    .res-unit { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .res-bar-bg { margin: 1rem 0 .4rem; height: 7px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .res-bar    { height: 100%; background: var(--green); border-radius: 99px; width: 0; transition: width .9s ease; }
+    .res-sub { font-size: 12px; color: var(--muted); margin-top: .3rem; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 10px; border-radius: 99px; font-weight: 500; margin-top: .75rem; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .bg-g { background: var(--green-lt); color: var(--green); } .bg-g .dot { background: var(--green); }
+    .bg-a { background: var(--amber-lt); color: var(--amber); } .bg-a .dot { background: var(--amber); }
+    .bg-b { background: var(--accent-lt); color: var(--accent); } .bg-b .dot { background: var(--accent); }
+
+    /* Stats mini */
+    .sgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .scard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .8rem 1rem; box-shadow: var(--shadow); }
+    .sl { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+    .sv { font-size: 20px; font-weight: 600; }
+    .su { font-size: 11px; color: var(--muted); }
+
+    /* Alert */
+    #alert { display: none; margin-bottom: 1rem; padding: 10px 14px; border-radius: 8px; font-size: 13px; border: 1px solid #fca5a5; background: #fef2f2; color: var(--red); }
+
+    /* Spinner */
+    .sp { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,.3); border-top-color: white; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 700px) {
+      main { grid-template-columns: 1fr; }
+      .fg2, .fg3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  </div>
+  <h1>Prédiction de production photovoltaïque — Tunisie</h1>
+  <span class="hbadge" id="hbadge">XGBoost actif</span>
+</header>
+
+<main>
+  <div>
+    <div id="alert"></div>
+    <div class="card" style="margin-bottom:1.2rem;">
+      <div class="ch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <h2>Informations de la centrale &amp; date</h2>
+      </div>
+      <div class="cb">
+        <div class="fg3">
+          <div class="field">
+            <label>Date de prédiction</label>
+            <div class="iw"><input type="date" id="date" /></div>
+          </div>
+          <div class="field">
+            <label>Capacité installée</label>
+            <div class="iw">
+              <input type="number" id="Capacite_kWp" placeholder="ex. 10" step="0.1" value="10" />
+              <span class="ub">kWp</span>
+            </div>
+            <span class="emsg" id="err-Capacite_kWp"></span>
+          </div>
+          <div class="field">
+            <label>Type de centrale</label>
+            <div class="iw">
+              <select id="Type_centrale">
+                <option value="Résidentiel">Résidentiel</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Industriel">Industriel</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="field">
+            <label>Région</label>
+            <div class="iw">
+              <select id="Region">
+                <option value="">— Non spécifiée —</option>
+                <optgroup label="── Sfax ──">
+                  <option value="Tunisie/Sfax/Sfax Médina">Sfax Médina</option>
+                  <option value="Tunisie/Sfax/Sfax Sud">Sfax Sud</option>
+                  <option value="Tunisie/Sfax/Sakiet Ezzit">Sakiet Ezzit</option>
+                  <option value="Tunisie/Sfax/Sakiet Eddaier">Sakiet Eddaier</option>
+                  <option value="Tunisie/Sfax/El Amra">El Amra</option>
+                  <option value="Tunisie/Sfax/Skhira">Skhira</option>
+                  <option value="Tunisie/Sfax/Bir Ali Ben Khélifa">Bir Ali Ben Khélifa</option>
+                </optgroup>
+                <optgroup label="── Sousse ──">
+                  <option value="Tunisie/Sousse/Sousse Médina">Sousse Médina</option>
+                  <option value="Tunisie/Sousse/M'Saken">M'Saken</option>
+                  <option value="Tunisie/Sousse/Bouficha">Bouficha</option>
+                </optgroup>
+                <optgroup label="── Médenine ──">
+                  <option value="Tunisie/Médenine/Djerba Midoun">Djerba Midoun</option>
+                  <option value="Tunisie/Médenine/Djerba Ajim">Djerba Ajim</option>
+                  <option value="Tunisie/Médenine/Houmt Souk">Houmt Souk</option>
+                  <option value="Tunisie/Médenine/Ben Guerdane">Ben Guerdane</option>
+                  <option value="Tunisie/Médenine/Zarzis">Zarzis</option>
+                  <option value="Tunisie/Médenine/Médenine Sud">Médenine Sud</option>
+                </optgroup>
+                <optgroup label="── Tunis ──">
+                  <option value="Tunisie/Tunis/La Marsa">La Marsa</option>
+                  <option value="Tunisie/Tunis/La Goulette">La Goulette</option>
+                  <option value="Tunisie/Tunis/El Menzah">El Menzah</option>
+                </optgroup>
+                <optgroup label="── Ariana ──">
+                  <option value="Tunisie/Ariana/Ariana Médina">Ariana Médina</option>
+                  <option value="Tunisie/Ariana/Mnihla">Mnihla</option>
+                  <option value="Tunisie/Ariana/Soukra">Soukra</option>
+                  <option value="Tunisie/Ariana/Kalaat El Andalous">Kalaat El Andalous</option>
+                </optgroup>
+                <optgroup label="── Gabès ──">
+                  <option value="Tunisie/Gabès/Gabès Sud">Gabès Sud</option>
+                  <option value="Tunisie/Gabès/Gabès Médina">Gabès Médina</option>
+                  <option value="Tunisie/Gabès/Hamma">Hamma</option>
+                  <option value="Tunisie/Gabès/Matmata Nouvelle">Matmata Nouvelle</option>
+                </optgroup>
+                <optgroup label="── Autres ──">
+                  <option value="Tunisie/Nabeul/Grombalia">Grombalia (Nabeul)</option>
+                  <option value="Tunisie/Monastir/Sahline">Sahline (Monastir)</option>
+                  <option value="Tunisie/Monastir/Teboulba">Teboulba (Monastir)</option>
+                  <option value="Tunisie/Mahdia/Mahdia">Mahdia</option>
+                  <option value="Tunisie/Bizerte/Ras Jebel">Ras Jebel (Bizerte)</option>
+                  <option value="Tunisie/Tataouine/Ghomrassen">Ghomrassen (Tataouine)</option>
+                  <option value="Tunisie/Ben Arous (Tunis Sud)/Radès">Radès (Ben Arous)</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 0 0 1.8-9.7 7 7 0 0 0-13.4-2"/></svg>
+        <h2>Données météorologiques</h2>
+      </div>
+      <div class="cb">
+        <div class="fg2">
+          <div class="field">
+            <label>Température moy. (Tavg)</label>
+            <div class="iw"><input type="number" id="Tavg" value="25" step="0.1"/><span class="ub">°C</span></div>
+            <span class="emsg" id="err-Tavg"></span>
+          </div>
+          <div class="field">
+            <label>Irradiation solaire</label>
+            <div class="iw"><input type="number" id="Solar_Wm2" value="6.5" step="0.1"/><span class="ub">kWh/m²</span></div>
+            <span class="emsg" id="err-Solar_Wm2"></span>
+          </div>
+          <div class="field">
+            <label>Température max (Tmax)</label>
+            <div class="iw"><input type="number" id="Tmax" value="32" step="0.1"/><span class="ub">°C</span></div>
+            <span class="emsg" id="err-Tmax"></span>
+          </div>
+          <div class="field">
+            <label>Température min (Tmin)</label>
+            <div class="iw"><input type="number" id="Tmin" value="18" step="0.1"/><span class="ub">°C</span></div>
+            <span class="emsg" id="err-Tmin"></span>
+          </div>
+          <div class="field">
+            <label>Humidité relative</label>
+            <div class="iw"><input type="number" id="Humidity" value="55" step="1"/><span class="ub">%</span></div>
+            <span class="emsg" id="err-Humidity"></span>
+          </div>
+          <div class="field">
+            <label>Vitesse du vent</label>
+            <div class="iw"><input type="number" id="Wind_mps" value="3.2" step="0.1"/><span class="ub">m/s</span></div>
+            <span class="emsg" id="err-Wind_mps"></span>
+          </div>
+        </div>
+        <div style="margin-top:12px;" class="fg2">
+          <div class="field">
+            <label>Précipitations</label>
+            <div class="iw"><input type="number" id="Precip_mm" value="0" step="0.1"/><span class="ub">mm</span></div>
+          </div>
+        </div>
+        <div class="brow">
+          <button class="btn btn-ghost" onclick="fetchWeather()" id="btn-weather">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>
+            Météo du lendemain
+          </button>
+          <button class="btn btn-primary" id="btn-predict" onclick="doPrediction()">
+            Prédire la production
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div style="display:flex;flex-direction:column;gap:1.2rem;">
+    <div class="card">
+      <div class="ch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <h2>Résultat de prédiction</h2>
+      </div>
+      <div class="res-body">
+        <div class="res-lbl">Production spécifique</div>
+        <div class="res-big" id="rnum">—</div>
+        <div class="res-unit">kWh / kWp</div>
+        <div class="res-bar-bg"><div class="res-bar" id="rbar"></div></div>
+        <div class="res-sub" id="rsub">Remplissez le formulaire et cliquez Prédire</div>
+        <div id="rbadge"></div>
+        <div id="rtotal" style="margin-top:.6rem;font-size:13px;color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <div class="sgrid" id="sgrid" style="display:none;">
+      <div class="scard"><div class="sl">Irradiation</div><div class="sv" id="s-irr">—</div><div class="su">kWh/m²/j</div></div>
+      <div class="scard"><div class="sl">Température</div><div class="sv" id="s-temp">—</div><div class="su">°C moy.</div></div>
+      <div class="scard"><div class="sl">Humidité</div><div class="sv" id="s-hum">—</div><div class="su">%</div></div>
+      <div class="scard"><div class="sl">Vent</div><div class="sv" id="s-wind">—</div><div class="su">m/s</div></div>
+    </div>
+
+
+  </div>
+</main>
+
+<script>
+const API = "http://localhost:5000";
+
+// Pré-remplir la date de demain
+const tom = new Date(); tom.setDate(tom.getDate()+1);
+document.getElementById("date").value = tom.toISOString().split("T")[0];
+
+// ── Table des coordonnées par région (pour OWM) ──────────────────────────────
+const SITES = {
+  "Tunisie/Sfax/Sfax Médina":           { lat: 34.7406, lon: 10.7603 },
+  "Tunisie/Sfax/Sfax Sud":              { lat: 34.7000, lon: 10.7500 },
+  "Tunisie/Sfax/Sakiet Ezzit":          { lat: 34.8167, lon: 10.7333 },
+  "Tunisie/Sfax/Sakiet Eddaier":        { lat: 34.8000, lon: 10.7667 },
+  "Tunisie/Sfax/El Amra":               { lat: 34.8833, lon: 10.5500 },
+  "Tunisie/Sfax/Skhira":                { lat: 34.2978, lon: 10.0694 },
+  "Tunisie/Sfax/Bir Ali Ben Khélifa":   { lat: 34.7194, lon: 10.0964 },
+  "Tunisie/Sousse/Sousse Médina":       { lat: 35.8274, lon: 10.6367 },
+  "Tunisie/Sousse/M'Saken":             { lat: 35.7333, lon: 10.5833 },
+  "Tunisie/Sousse/Bouficha":            { lat: 36.2333, lon: 10.5333 },
+  "Tunisie/Médenine/Djerba Midoun":     { lat: 33.7833, lon: 11.0000 },
+  "Tunisie/Médenine/Djerba Ajim":       { lat: 33.7000, lon: 10.7500 },
+  "Tunisie/Médenine/Houmt Souk":        { lat: 33.8767, lon: 10.8567 },
+  "Tunisie/Médenine/Ben Guerdane":      { lat: 33.1333, lon: 11.2167 },
+  "Tunisie/Médenine/Zarzis":            { lat: 33.5000, lon: 11.1167 },
+  "Tunisie/Médenine/Médenine Sud":      { lat: 33.3333, lon: 10.4833 },
+  "Tunisie/Tunis/La Marsa":             { lat: 36.8767, lon: 10.3244 },
+  "Tunisie/Tunis/La Goulette":          { lat: 36.8181, lon: 10.3050 },
+  "Tunisie/Tunis/El Menzah":            { lat: 36.8500, lon: 10.1833 },
+  "Tunisie/Ariana/Ariana Médina":       { lat: 36.8622, lon: 10.1939 },
+  "Tunisie/Ariana/Mnihla":              { lat: 36.9044, lon: 10.1808 },
+  "Tunisie/Ariana/Soukra":              { lat: 36.8981, lon: 10.2411 },
+  "Tunisie/Ariana/Kalaat El Andalous":  { lat: 37.0622, lon: 10.0811 },
+  "Tunisie/Gabès/Gabès Sud":            { lat: 33.8500, lon: 10.0833 },
+  "Tunisie/Gabès/Gabès Médina":         { lat: 33.8833, lon: 10.0978 },
+  "Tunisie/Gabès/Hamma":                { lat: 33.8833, lon:  9.8000 },
+  "Tunisie/Gabès/Matmata Nouvelle":     { lat: 33.5500, lon:  9.9667 },
+  "Tunisie/Nabeul/Grombalia":           { lat: 36.5997, lon: 10.5103 },
+  "Tunisie/Monastir/Sahline":           { lat: 35.7667, lon: 10.7333 },
+  "Tunisie/Monastir/Teboulba":          { lat: 35.7000, lon: 10.9000 },
+  "Tunisie/Mahdia/Mahdia":              { lat: 35.5047, lon: 11.0622 },
+  "Tunisie/Bizerte/Ras Jebel":          { lat: 37.2167, lon: 10.1167 },
+  "Tunisie/Tataouine/Ghomrassen":       { lat: 33.0667, lon: 10.1833 },
+  "Tunisie/Ben Arous (Tunis Sud)/Radès":{ lat: 36.7697, lon: 10.2769 },
+};
+
+// Retourne les coordonnées de la région sélectionnée (fallback Sfax Médina)
+function getSelectedCoords() {
+  const region = document.getElementById("Region").value;
+  return SITES[region] || { lat: 34.7406, lon: 10.7603 };
+}
+
+// Quand on change de région → recharger la météo si une date est déjà saisie
+document.getElementById("Region").addEventListener("change", function () {
+  owmCache = null;  // invalider le cache (nouvelles coordonnées)
+  const dateStr = document.getElementById("date").value;
+  if (dateStr) loadWeatherForDate(dateStr, null);
+});
+
+fetch(`${API}/health`)
+  .then(r => r.json())
+  .then(d => {
+    const b = document.getElementById("hbadge");
+    if (!d.model_loaded) {
+      b.textContent = "Modèle non chargé"; b.style.background="#fef2f2";
+      b.style.color="#dc2626"; b.style.borderColor="#fca5a5";
+    } else {
+      b.textContent = `XGBoost ✓ — ${d.features_count} features`;
+    }
+  }).catch(() => {
+    const b = document.getElementById("hbadge");
+    b.textContent = "Backend hors ligne"; b.style.background="#fef2f2";
+    b.style.color="#dc2626"; b.style.borderColor="#fca5a5";
+  });
+
+const rules = {
+  Capacite_kWp: { min:0.1, max:10000, msg:"Entre 0.1 et 10 000 kWp" },
+  Tavg:         { min:-30, max:60,    msg:"Entre -30 et 60 °C" },
+  Tmax:         { min:-30, max:65,    msg:"Entre -30 et 65 °C" },
+  Tmin:         { min:-30, max:55,    msg:"Entre -30 et 55 °C" },
+  Solar_Wm2:    { min:0,   max:25,    msg:"Entre 0 et 25 kWh/m²" },
+  Humidity:     { min:0,   max:100,   msg:"Entre 0 et 100 %" },
+  Wind_mps:     { min:0,   max:150,   msg:"Entre 0 et 150 m/s" },
+};
+
+function validate(id) {
+  const el = document.getElementById(id);
+  const em = document.getElementById("err-"+id);
+  if (!em) return true;
+  const v = parseFloat(el.value);
+  const r = rules[id];
+  if (el.value==="" || isNaN(v)) { el.classList.add("err"); em.textContent="Requis"; return false; }
+  if (v<r.min||v>r.max)         { el.classList.add("err"); em.textContent=r.msg;   return false; }
+  el.classList.remove("err"); em.textContent=""; return true;
+}
+
+function showAlert(msg) {
+  const a = document.getElementById("alert");
+  a.style.display="block"; a.textContent="⚠ "+msg;
+  setTimeout(()=>a.style.display="none", 5000);
+}
+
+function setLoading(on) {
+  const b = document.getElementById("btn-predict");
+  b.innerHTML = on ? '<div class="sp"></div> Calcul…' : "Prédire la production";
+  b.disabled = on;
+}
+
+async function doPrediction() {
+  const fields = ["Capacite_kWp","Tavg","Tmax","Tmin","Solar_Wm2","Humidity","Wind_mps"];
+  if (!fields.map(validate).every(Boolean)) return;
+
+  const payload = {
+    date          : document.getElementById("date").value,
+    Capacite_kWp  : +document.getElementById("Capacite_kWp").value,
+    Tavg          : +document.getElementById("Tavg").value,
+    Tmax          : +document.getElementById("Tmax").value,
+    Tmin          : +document.getElementById("Tmin").value,
+    Solar_Wm2     : +document.getElementById("Solar_Wm2").value,
+    Humidity      : +document.getElementById("Humidity").value,
+    Wind_mps      : +document.getElementById("Wind_mps").value,
+    Precip_mm     : +document.getElementById("Precip_mm").value || 0,
+    Type_centrale : document.getElementById("Type_centrale").value,
+  };
+  const region = document.getElementById("Region").value;
+  if (region) payload.Region = region;
+
+  setLoading(true);
+  try {
+    const res  = await fetch(`${API}/predict`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || data.status==="error") { showAlert(data.message||"Erreur serveur"); setLoading(false); return; }
+    showResult(data, payload);
+  } catch(e) {
+    showAlert("Impossible de joindre Flask sur http://localhost:5000. Vérifiez que le backend tourne.");
+  }
+  setLoading(false);
+}
+
+function showResult(data, p) {
+  const v = data.production_spec_kWh_per_kWp;
+  const n = document.getElementById("rnum");
+  n.textContent = v.toFixed(2);
+  n.className = "res-big " + (v>=5?"good":v>=2.5?"mid":"");
+
+  const pct = Math.min(v/10*100,100);
+  document.getElementById("rbar").style.width = pct+"%";
+  document.getElementById("rsub").textContent = `Modèle : ${data.model_used} | Type : ${data.type_centrale}`;
+
+  const [lbl,cls] = v>=5?["Excellente production","bg-g"]:v>=2.5?["Production modérée","bg-a"]:["Faible production","bg-b"];
+  document.getElementById("rbadge").innerHTML = `<span class="badge ${cls}"><span class="dot"></span>${lbl}</span>`;
+
+  const tot = data.production_totale_kWh;
+  document.getElementById("rtotal").textContent = `Production totale estimée : ${tot.toLocaleString("fr-FR")} kWh`;
+
+  document.getElementById("sgrid").style.display = "grid";
+  document.getElementById("s-irr").textContent  = p.Solar_Wm2;
+  document.getElementById("s-temp").textContent = p.Tavg;
+  document.getElementById("s-hum").textContent  = p.Humidity;
+  document.getElementById("s-wind").textContent = p.Wind_mps;
+
+}
+
+// ── Configuration OpenWeatherMap ─────────────────────────────────────────────
+const OWM_API_KEY = "4df83cf5461d8bbf79e05c6877e60fc8";  // ← remplace par ta vraie clé OWM
+// Les coordonnées sont maintenant lues depuis la table SITES (ci-dessus)
+
+// Cache pour éviter plusieurs appels identiques
+let owmCache = null;        // { fetchedAt, data }
+
+// ── Chargement automatique quand la date change ───────────────────────────────
+document.getElementById("date").addEventListener("change", async function () {
+  const dateStr = this.value;
+  if (!dateStr) return;
+  await loadWeatherForDate(dateStr, null);
+});
+
+// ── Bouton "Météo du lendemain" → charge J+1 de la date du formulaire ─────────
+async function fetchWeather() {
+  const btn = document.getElementById("btn-weather");
+  const dateStr = document.getElementById("date").value;
+
+  if (!dateStr) {
+    showAlert("Veuillez d'abord saisir une date de prédiction.");
+    return;
+  }
+
+  // Calcul de J+1
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + 1);
+  const j1 = d.toISOString().split("T")[0];
+
+  // Met à jour le champ date avec J+1
+  document.getElementById("date").value = j1;
+
+  await loadWeatherForDate(j1, btn);
+}
+
+// ── Fonction centrale : appelle OWM et remplit le formulaire ──────────────────
+async function loadWeatherForDate(dateStr, btn) {
+  // Validation de la plage OWM (0 à 5 jours dans le futur)
+  const target = new Date(dateStr);
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const diff   = Math.round((target - today) / 86400000);
+
+  if (diff < 0) {
+    showAlert(`La date ${dateStr} est dans le passé. OpenWeatherMap ne couvre que les prévisions futures.`);
+    return;
+  }
+  if (diff > 5) {
+    showAlert(`La date ${dateStr} est dans ${diff} jours. OpenWeatherMap ne prévoit que 5 jours à l'avance (J à J+5).`);
+    return;
+  }
+
+  // Indicateur de chargement sur le bouton si fourni, sinon sur le champ date
+  const dateInput = document.getElementById("date");
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="sp"></div> Chargement…'; }
+  else      { dateInput.style.opacity = "0.5"; }
+
+  try {
+    // Utilise le cache si l'appel a été fait il y a moins de 10 min
+    let owmData;
+    const now = Date.now();
+    if (owmCache && (now - owmCache.fetchedAt) < 600000) {
+      owmData = owmCache.data;
+    } else {
+      const { lat, lon } = getSelectedCoords();
+      const url = `https://api.openweathermap.org/data/2.5/forecast`
+        + `?lat=${lat}&lon=${lon}`
+        + `&appid=${OWM_API_KEY}`
+        + `&units=metric&lang=fr&cnt=40`;
+
+      const res = await fetch(url);
+      owmData   = await res.json();
+
+      if (owmData.cod !== "200") {
+        showAlert(`OpenWeatherMap : ${owmData.message || "Erreur"} — Vérifiez OWM_API_KEY dans index.html.`);
+        if (btn) resetWeatherBtn(btn); else dateInput.style.opacity = "";
+        return;
+      }
+      owmCache = { fetchedAt: now, data: owmData };
+    }
+
+    // Filtrer les créneaux (toutes les 3h) qui correspondent à dateStr
+    const slots = owmData.list.filter(s => s.dt_txt.startsWith(dateStr));
+
+    if (slots.length === 0) {
+      showAlert(`Aucune prévision OWM pour le ${dateStr}. Essayez une date entre aujourd'hui et J+5.`);
+      if (btn) resetWeatherBtn(btn); else dateInput.style.opacity = "";
+      return;
+    }
+
+    // Agrégation journalière
+    const temps   = slots.map(s => s.main.temp);
+    const hums    = slots.map(s => s.main.humidity);
+    const winds   = slots.map(s => s.wind.speed);
+    const precips = slots.map(s => s.rain?.["3h"] ?? 0);
+    const clouds  = slots.map(s => s.clouds.all);
+
+    const tmax      = parseFloat(Math.max(...temps).toFixed(1));
+    const tmin      = parseFloat(Math.min(...temps).toFixed(1));
+    const tavg      = parseFloat((temps.reduce((a,b)=>a+b,0) / temps.length).toFixed(1));
+    const hum       = Math.round(hums.reduce((a,b)=>a+b,0) / hums.length);
+    const wind      = parseFloat(Math.max(...winds).toFixed(1));
+    const precip    = parseFloat(precips.reduce((a,b)=>a+b,0).toFixed(1));
+    const cloudAvg  = clouds.reduce((a,b)=>a+b,0) / clouds.length;
+
+    // Estimation irradiation depuis couverture nuageuse
+    // Irradiation ciel clair pour la Tunisie (~35°N) : varie selon le mois
+    const month    = target.getMonth() + 1;
+    const irrClear = [4.2,5.1,6.3,7.2,7.8,8.2,8.0,7.6,6.5,5.4,4.3,3.9][month-1];
+    const irr      = parseFloat(Math.max(irrClear * (1 - (cloudAvg/100)*0.75), 0.5).toFixed(2));
+
+    // Remplissage du formulaire
+    document.getElementById("Tmax").value      = tmax;
+    document.getElementById("Tmin").value      = tmin;
+    document.getElementById("Tavg").value      = tavg;
+    document.getElementById("Wind_mps").value  = wind;
+    document.getElementById("Precip_mm").value = precip;
+    document.getElementById("Humidity").value  = hum;
+    document.getElementById("Solar_Wm2").value = irr;
+
+    // Message de confirmation
+    const city = owmData.city?.name || "région";
+    const desc = slots[Math.floor(slots.length/2)]?.weather?.[0]?.description || "";
+    const label = btn ? `J+1 (${dateStr})` : dateStr;
+    showInfo(`Météo ${city} — ${label} : ${desc}, nuages ${Math.round(cloudAvg)}%, irr. estimée ${irr} kWh/m²`);
+
+    if (btn) { btn.innerHTML = "✓ J+1 chargé"; setTimeout(() => resetWeatherBtn(btn), 3000); }
+    else     { dateInput.style.opacity = ""; }
+
+  } catch(e) {
+    showAlert("Erreur réseau. Vérifiez votre connexion et la clé OWM_API_KEY.");
+    console.error(e);
+    if (btn) resetWeatherBtn(btn); else dateInput.style.opacity = "";
+  }
+}
+
+function resetWeatherBtn(btn) {
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg> Météo du lendemain (J+1)';
+  btn.disabled = false;
+}
+
+function showInfo(msg) {
+  const a = document.getElementById("alert");
+  a.style.cssText = "display:block;background:#eff6ff;color:#1d4ed8;border-color:#93c5fd;";
+  a.textContent = "ℹ " + msg;
+  setTimeout(() => { a.style.display="none"; a.style.cssText=""; }, 8000);
+}
+</script>
+</body>
+</html>

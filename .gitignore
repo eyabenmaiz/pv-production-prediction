@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Environnements Virtuels Python
+venv/
+env/
+__pycache__/
+*.pyc 
+
+#Modèle et données (optionnel selon ta décision - voir ma question plus bas)
+model/
+dataset_final.csv
+dates_test_set.csv
+# OS
+.DS_Store
+Thumbs.db
