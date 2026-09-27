@@ -2,7 +2,7 @@
 
 ![Build Status](https://github.com/eyabenmaiz/pv-production-prediction/actions/workflows/docker-build.yml/badge.svg)
 
-Systeme intelligent de prediction de la production photovoltaique a J+1, base sur un modele XGBoost entraine sur des donnees meteorologiques. Developpe initialement dans le cadre d'un Projet de Fin d'Annee (ENET'Com Sfax), puis conteneurise avec Docker et integre dans un pipeline CI/CD.
+Systeme intelligent de  prediction de la production photovoltaique a J+1, base sur un modele XGBoost entraine sur des donnees meteorologiques. Developpe initialement dans le cadre d'un Projet de Fin d'Annee (ENET'Com Sfax), puis conteneurise avec Docker et integre dans un pipeline CI/CD.
 
 ## Stack technique
 
